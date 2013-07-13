@@ -11,6 +11,7 @@ object ApplicationBuild extends Build {
     "com.fasterxml.jackson.core" % "jackson-annotations" % "2.1.4",
     "org.slf4j" % "slf4j-api" % "1.6.4",
     "com.wordnik" % "swagger-core_2.10.0" % "1.2.5",
+    "eu.teamon" %% "play-navigator" % "0.4.0",
     "com.wordnik" % "swagger-annotations_2.10.0" % "1.2.5",
     "javax.ws.rs" % "jsr311-api" % "1.1.1")
 
@@ -54,6 +55,7 @@ object ApplicationBuild extends Build {
   </developers>)
     ,
     resolvers := Seq(
+      "teamon.eu repo" at "http://repo.teamon.eu",
       "maven-central" at "https://repo1.maven.org/maven2",
       "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository",
       "sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",

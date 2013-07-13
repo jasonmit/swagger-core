@@ -31,9 +31,22 @@ import play.api.Logger
 import scala.collection.mutable.ListBuffer
 import scala.Predef._
 import scala.collection.JavaConversions._
+import play.navigator.PlayNavigator
+
+
+abstract class RestfulRoutesBase extends PlayNavigator {
+  private def RegisterSwagger() = {
+    ApiHelpInventory.addControllerClass(this.getClass)
+    ApiHelpInventory.reload()
+  }
+
+  RegisterSwagger()
+}
+
+
 
 /**
- * Exposes two primay methods: to get a list of available resources and to get details on a given resource
+ * Exposes two primary methods: to get a list of available resources and to get details on a given resource
  *
  * @author ayush
  * @since 10/9/11 4:05 PM
@@ -56,9 +69,11 @@ object ApiHelpInventory {
   private val swaggerVersion = SwaggerSpec.version
   private val apiFilterClassName = current.configuration.getString("swagger.security.filter") match { case None => null case Some(value) => value }
 
-  private val filterOutTopLevelApi = true
+  //private val filterOutTopLevelApi = true
 
-  def getResourceNames: java.util.List[String] = getResourceMap.keys.toList
+  def getResourceNames(): java.util.List[String] = {
+    getResourceMap().keys.toList
+  }
 
   private val jaxbContext = JAXBContext.newInstance(classOf[Documentation]);
 
@@ -66,10 +81,10 @@ object ApiHelpInventory {
    * Get a list of all top level resources
    */
   private def getRootResources(format: String)(implicit requestHeader: RequestHeader) = {
-    var apiFilter: ApiAuthorizationFilter = ApiAuthorizationFilterLocator.get(apiFilterClassName)
-
+    val apiFilter: ApiAuthorizationFilter = ApiAuthorizationFilterLocator.get(apiFilterClassName)
     val allApiDoc = new Documentation
-    for (clazz <- getControllerClasses) {
+
+    for (clazz <- getControllerClasses()) {
       val apiAnnotation = clazz.getAnnotation(classOf[Api])
       if (null != apiAnnotation) {
         val listingPath = {
@@ -104,14 +119,16 @@ object ApiHelpInventory {
       }
       case _ => resourceName
     }
+
     getResourceMap.get(qualifiedResourceName) match {
       case Some(cls) => {
         val apiAnnotation = cls.getAnnotation(classOf[Api])
 
-        val listingPath = {
+        /*val listingPath = {
           if(apiAnnotation.listingPath != "") apiAnnotation.listingPath
           else apiAnnotation.value
-        }.replaceAll("\\.json", PlayApiReader.formatString).replaceAll("\\.xml", PlayApiReader.formatString)
+        }.replaceAll("\\.json", PlayApiReader.formatString).replaceAll("\\.xml", PlayApiReader.formatString)*/
+
         val realPath = apiAnnotation.value.replaceAll("\\.json", PlayApiReader.formatString).replaceAll("\\.xml", PlayApiReader.formatString)
 
         Logger("swagger").debug("Loading resource " + qualifiedResourceName + " from " + cls + " @ " + realPath + ", " + basePath)
@@ -163,6 +180,7 @@ object ApiHelpInventory {
     ApiAuthorizationFilterLocator.clear
 
     clear()
+
     this.getRootResources("json")(null)
     for (resource <- this.getResourceMap.keys) {
       Logger("swagger").debug("loading resource " + resource)
@@ -176,10 +194,9 @@ object ApiHelpInventory {
   /**
    * Get a list of all controller classes in Play
    */
-  private def getControllerClasses = {
+  private def getControllerClasses() = {
     if (this.controllerClasses.isEmpty) {
-      // get from application routes
-      val controllers = current.routes match {
+      val controllers = current.routes match {       // get from application routes
         case Some(r) => {
           for(doc <- r.documentation) yield {
             val m1 = doc._3.lastIndexOf("(") match {
@@ -191,6 +208,7 @@ object ApiHelpInventory {
         }
         case None => Seq(None)
       }
+
       val swaggerControllers = controllers.flatten.toList
       swaggerControllers.size match {
         case i:Int if (i > 0) => {
@@ -217,10 +235,17 @@ object ApiHelpInventory {
     controllerClasses
   }
 
-  private def getResourceMap = {
+  def addControllerClass(clazzName: Class[_]) {
+    val cls = current.classloader.loadClass(clazzName.getName)
+    if(cls != null)
+      controllerClasses += clazzName
+  }
+
+  private def getResourceMap() = {
     // check if resources and controller info has already been loaded
     if (controllerClasses.length == 0)
-      this.getControllerClasses
+      this.getControllerClasses()
+
     this.resourceMap
   }
 

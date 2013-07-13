@@ -74,6 +74,7 @@ object ApiHelpController extends SwaggerBaseApiController {
       case true => ApiHelpInventory.getRootHelpXml()
       case false => ApiHelpInventory.getRootHelpJson()
     }
+
     returnValue(request, resources)
   }
 
@@ -84,6 +85,7 @@ object ApiHelpController extends SwaggerBaseApiController {
       case true => ApiHelpInventory.getPathHelpXml(path)
       case false => ApiHelpInventory.getPathHelpJson(path)
     }
+
     Option(help) match {
       case Some(help) => returnValue(request, help)
       case None => {
